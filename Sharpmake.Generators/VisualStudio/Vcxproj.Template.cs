@@ -102,7 +102,7 @@ namespace Sharpmake.Generators.VisualStudio
 
                 public static string ProjectAfterConfigurationsGeneral =
 @"  <Import Project=""[vcTargetsPath]\Microsoft.Cpp.props"" />
-  <ImportGroup Label=""ExtensionSettings"">
+  <ImportGroup Label=""PropertySheets"">
 ";
                 public static string ProjectAfterConfigurationsGeneralImportPropertySheets =
 @"  <ImportGroup Label=""PropertySheets"">
