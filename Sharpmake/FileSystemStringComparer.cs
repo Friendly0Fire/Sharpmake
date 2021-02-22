@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2017 Ubisoft Entertainment
+﻿// Copyright (c) 2018-2021 Ubisoft Entertainment
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,8 +35,7 @@ namespace Sharpmake
 
         static FileSystemStringComparer()
         {
-            var operatingSystemFamily = Environment.OSVersion.Platform;
-            s_hostOsIsCaseSensitive = (operatingSystemFamily == PlatformID.MacOSX || operatingSystemFamily == PlatformID.Unix);
+            s_hostOsIsCaseSensitive = Util.IsRunningOnUnix();
         }
 
         private readonly object _comparer;         // Using System::Object as the type because this can be both IComparer or IEqualityComparer.

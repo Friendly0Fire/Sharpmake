@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2017 Ubisoft Entertainment
+﻿// Copyright (c) 2017-2021 Ubisoft Entertainment
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Sharpmake.Generators;
@@ -193,19 +194,19 @@ namespace Sharpmake.Application
                         versionString += " " + informationalVersion;
                 }
 
-                var osplatform = Util.GetExecutingPlatform();
-                string framework = Util.IsRunningInMono() ? "Mono" : (Util.IsRunningDotNetCore() ? ".NET Core" : ".NET Framework");
-
-                LogWriteLine($"sharpmake {versionString} ({osplatform} | {framework})");
-                LogWriteLine("  arguments : {0}", CommandLine.GetProgramCommandLine());
-                LogWriteLine("  directory : {0}", Directory.GetCurrentDirectory());
+                LogWriteLine($"sharpmake {versionString}");
+                LogWriteLine("  arguments: {0}", CommandLine.GetProgramCommandLine());
+                LogWriteLine("  directory: {0}", Directory.GetCurrentDirectory());
+                LogWriteLine("  platform: {0} - {1}", Util.GetExecutingPlatform().ToString(), RuntimeInformation.OSDescription);
+                LogWriteLine("  compiled with framework: {0}", Util.FrameworkDisplayName());
+                LogWriteLine("  running on framework: {0}", RuntimeInformation.FrameworkDescription);
                 LogWriteLine(string.Empty);
 
                 // display help if wanted and quit
                 if ((CommandLine.GetProgramCommandLine().Length == 0) || CommandLine.ContainParameter("help"))
                 {
                     LogWriteLine(CommandLine.GetCommandLineHelp(typeof(Argument), false));
-                    return (int)ExitCode.Success;
+                    return CommandLine.ContainParameter("help") ? (int)ExitCode.Success : (int)ExitCode.Error;
                 }
 
                 AppDomain.CurrentDomain.AssemblyLoad += AppDomain_AssemblyLoad;
@@ -434,7 +435,7 @@ namespace Sharpmake.Application
 
         private static void CreateBuilderAndGenerate(BuildContext.BaseBuildContext buildContext, Argument parameters, bool generateDebugSolution)
         {
-            using (Builder builder = CreateBuilder(buildContext, parameters, true, generateDebugSolution))
+            using (Builder builder = CreateBuilder(buildContext, parameters, allowCleanBlobs: true, generateDebugSolution: generateDebugSolution))
             {
                 if (parameters.CleanBlobsOnly)
                 {
@@ -482,7 +483,10 @@ namespace Sharpmake.Application
                 ExtensionMethods.ClearVisualStudioDirCaches();
             }
 
-            CreateBuilderAndGenerate(buildContext, parameters, generateDebugSolution: false);
+            if (!parameters.GenerateDebugSolutionOnly)
+            {
+                CreateBuilderAndGenerate(buildContext, parameters, generateDebugSolution: false);
+            }
         }
 
         private static ExitCode AnalyzeConfigureOrder(Argument parameters, bool stopOnFirstError)
@@ -592,6 +596,7 @@ namespace Sharpmake.Application
                 parameters.BlobOnly,
                 parameters.SkipInvalidPath,
                 parameters.Diagnostics,
+                parameters.DebugScripts,
                 Program.GetGeneratorsManager,
                 parameters.Defines
             );

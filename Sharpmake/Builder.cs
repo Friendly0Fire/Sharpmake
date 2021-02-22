@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2017 Ubisoft Entertainment
+﻿// Copyright (c) 2017-2021 Ubisoft Entertainment
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -129,6 +129,7 @@ namespace Sharpmake
         private bool _cleanBlobsOnly = false;
         public bool BlobOnly = false;
         public bool Diagnostics = false;
+        private bool _debugScripts = false;
         private ThreadPool _tasks;
         // Keep all instances of manually built (and loaded) assemblies, as they may be needed by other assemblies on load (command line).
         private readonly ConcurrentDictionary<string, Assembly> _builtAssemblies = new ConcurrentDictionary<string, Assembly>(); // Assembly Full Path -> Assembly
@@ -261,6 +262,7 @@ namespace Sharpmake
             bool blobOnly,
             bool skipInvalidPath,
             bool diagnostics,
+            bool debugScripts,
             Func<IGeneratorManager> getGeneratorsManagerCallBack,
             HashSet<string> defines)
         {
@@ -271,6 +273,7 @@ namespace Sharpmake
             _cleanBlobsOnly = cleanBlobsOnly;
             BlobOnly = blobOnly;
             Diagnostics = diagnostics;
+            _debugScripts = debugScripts;
             SkipInvalidPath = skipInvalidPath;
             _getGeneratorsManagerCallBack = getGeneratorsManagerCallBack;
             _getGeneratorsManagerCallBack().InitializeBuilder(this);
@@ -291,6 +294,10 @@ namespace Sharpmake
                 _tasks.Start(nbThreads);
             }
         }
+
+        [Obsolete("Use the builder with the new debugScripts argument", error: false)]
+        public Builder(BuildContext.BaseBuildContext context, bool multithreaded, bool dumpDependencyGraph, bool cleanBlobsOnly, bool blobOnly, bool skipInvalidPath, bool diagnostics, Func<IGeneratorManager> getGeneratorsManagerCallBack, HashSet<string> defines)
+            : this(context, multithreaded, dumpDependencyGraph, cleanBlobsOnly, blobOnly, skipInvalidPath, diagnostics, false, getGeneratorsManagerCallBack, defines) { }
 
         public void Dispose()
         {
@@ -344,15 +351,8 @@ namespace Sharpmake
             if (entryPointMethodInfo == null)
                 return;
 
-            try
-            {
-                entryPointMethodInfo.Invoke(null, new object[] { Arguments });
-            }
-            catch (TargetInvocationException e)
-            {
-                if (e.InnerException != null)
-                    throw e.InnerException;
-            }
+
+            entryPointMethodInfo.Invoke(null, new object[] { Arguments });
         }
 
         private bool _profilingEnabled = false;
@@ -1194,10 +1194,13 @@ namespace Sharpmake
 
             public BuilderCompileErrorBehavior CompileErrorBehavior { get; }
 
+            public bool DebugScripts { get; }
+
             public BuilderContext(Builder builder, BuilderCompileErrorBehavior compileErrorBehavior)
             {
                 _builder = builder;
                 CompileErrorBehavior = compileErrorBehavior;
+                DebugScripts = builder._debugScripts;
             }
 
             public ILoadInfo BuildAndLoadSharpmakeFiles(IEnumerable<ISourceAttributeParser> parsers, IEnumerable<IParsingFlowParser> flowParsers, params string[] files)
